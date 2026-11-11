@@ -2,6 +2,8 @@ name: Build mod
 
 on:
   push:
+    paths-ignore:
+      - '.github/workflows/inspect.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "fightadvisor",
+  "version": "${version}",
+  "name": "FightAdvisor",
+  "description": "Porownuje Twoje HP z HP przeciwnika i podpowiada: oraj albo sie wycofaj.",
+  "authors": ["Matlandia"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.fightadvisor.FightAdvisorClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,4 +29,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fightadvisor-jar
-          path: build/libs/*.jar
+          path: build/libs/fightadvisor-1.0.0.jar
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v1.0.0-build${{ github.run_number }}" \
+            build/libs/fightadvisor-1.0.0.jar \
+            --title "FightAdvisor 1.0.0 (build ${{ github.run_number }})" \
+            --notes "Mod na Fabric 1.21.4. Wymaga Fabric API 0.118.0+1.21.4."

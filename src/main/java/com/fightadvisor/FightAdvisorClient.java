@@ -21,6 +21,14 @@ public class FightAdvisorClient implements ClientModInitializer {
 	private static KeyBinding toggleKey;
 	private static boolean enabled = true;
 
+	public static boolean isEnabled() {
+		return enabled;
+	}
+
+	public static void setEnabled(boolean value) {
+		enabled = value;
+	}
+
 	private static LivingEntity lastAttacked = null;
 	private static long lastAttackTime = 0;
 
@@ -29,9 +37,12 @@ public class FightAdvisorClient implements ClientModInitializer {
 		toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.fightadvisor.toggle", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.fightadvisor"));
 
+		// V otwiera menu FightAdvisor (tam wlaczasz/wylaczasz napis)
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (toggleKey.wasPressed()) {
-				enabled = !enabled;
+				if (client.player != null && client.currentScreen == null) {
+					client.setScreen(new FightAdvisorScreen());
+				}
 			}
 		});
 

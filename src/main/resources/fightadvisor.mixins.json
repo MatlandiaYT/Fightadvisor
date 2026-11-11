@@ -1,0 +1,11 @@
+{
+  "required": false,
+  "package": "com.fightadvisor.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "TeamMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

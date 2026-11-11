@@ -3,7 +3,6 @@ package com.fightadvisor;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
@@ -11,6 +10,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import org.lwjgl.glfw.GLFW;
 
@@ -24,9 +24,6 @@ public class FightAdvisorClient implements ClientModInitializer {
 	// Ustawienia z menu (V). Zapamietywane do zamkniecia gry.
 	private static Advice.Mode mode = Advice.Mode.NORMAL;
 	private static boolean playersOnly = false;
-	private static int position = 1; // 0 = nad celownikiem, 1 = pod, 2 = nisko
-
-	public static final String[] POSITION_LABELS = {"Nad celownikiem", "Pod celownikiem", "Nisko"};
 
 	public static boolean isEnabled() { return enabled; }
 	public static void setEnabled(boolean value) { enabled = value; }
@@ -37,24 +34,23 @@ public class FightAdvisorClient implements ClientModInitializer {
 	public static boolean isPlayersOnly() { return playersOnly; }
 	public static void togglePlayersOnly() { playersOnly = !playersOnly; }
 
-	public static int getPosition() { return position; }
-	public static void cyclePosition() { position = (position + 1) % POSITION_LABELS.length; }
-
 	private static LivingEntity lastAttacked = null;
 	private static long lastAttackTime = 0;
+	private static boolean showingMessage = false;
 
 	@Override
 	public void onInitializeClient() {
 		toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.fightadvisor.toggle", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.fightadvisor"));
 
-		// V otwiera menu FightAdvisor (tam wlaczasz/wylaczasz napis)
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			// V otwiera menu FightAdvisor
 			while (toggleKey.wasPressed()) {
 				if (client.player != null && client.currentScreen == null) {
 					client.setScreen(new FightAdvisorScreen());
 				}
 			}
+			updateActionBar(client);
 		});
 
 		AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
@@ -64,31 +60,30 @@ public class FightAdvisorClient implements ClientModInitializer {
 			}
 			return ActionResult.PASS;
 		});
+	}
 
-		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
-			MinecraftClient client = MinecraftClient.getInstance();
-			PlayerEntity me = client.player;
-			if (!enabled || me == null || client.options.hudHidden || client.currentScreen != null) return;
+	/** Werdykt w action barze (pasek nad hotbarem). */
+	private static void updateActionBar(MinecraftClient client) {
+		PlayerEntity me = client.player;
+		LivingEntity target = null;
+		if (enabled && me != null) {
+			target = pickTarget(client, me);
+			if (target != null && playersOnly && !(target instanceof PlayerEntity)) target = null;
+		}
 
-			LivingEntity target = pickTarget(client, me);
-			if (target == null) return;
-			if (playersOnly && !(target instanceof PlayerEntity)) return;
+		if (target == null) {
+			if (showingMessage && client.inGameHud != null) {
+				client.inGameHud.setOverlayMessage(Text.empty(), false); // schowaj napis
+				showingMessage = false;
+			}
+			return;
+		}
 
-			float myEff = Advice.effectiveHp(me);
-			float theirEff = Advice.effectiveHp(target);
-			Advice.Verdict verdict = Advice.judge(myEff, theirEff, mode);
-
-			int cx = ctx.getScaledWindowWidth() / 2;
-			int h = ctx.getScaledWindowHeight();
-			int y = switch (position) {
-				case 0 -> h / 2 - 40;
-				case 2 -> h - 75;
-				default -> h / 2 + 22;
-			};
-
-			// Sam napis z werdyktem pod celownikiem
-			ctx.drawCenteredTextWithShadow(client.textRenderer, verdict.label, cx, y, verdict.color);
-		});
+		Advice.Verdict verdict = Advice.judge(Advice.effectiveHp(me), Advice.effectiveHp(target), mode);
+		int rgb = verdict.color & 0xFFFFFF;
+		client.inGameHud.setOverlayMessage(
+				Text.literal(verdict.label).styled(style -> style.withColor(rgb)), false);
+		showingMessage = true;
 	}
 
 	/** Cel: byt na celowniku, a jesli brak - ostatnio uderzony w ciagu 5 s. */

@@ -21,13 +21,24 @@ public class FightAdvisorClient implements ClientModInitializer {
 	private static KeyBinding toggleKey;
 	private static boolean enabled = true;
 
-	public static boolean isEnabled() {
-		return enabled;
-	}
+	// Ustawienia z menu (V). Zapamietywane do zamkniecia gry.
+	private static Advice.Mode mode = Advice.Mode.NORMAL;
+	private static boolean playersOnly = false;
+	private static int position = 1; // 0 = nad celownikiem, 1 = pod, 2 = nisko
 
-	public static void setEnabled(boolean value) {
-		enabled = value;
-	}
+	public static final String[] POSITION_LABELS = {"Nad celownikiem", "Pod celownikiem", "Nisko"};
+
+	public static boolean isEnabled() { return enabled; }
+	public static void setEnabled(boolean value) { enabled = value; }
+
+	public static Advice.Mode getMode() { return mode; }
+	public static void cycleMode() { mode = mode.next(); }
+
+	public static boolean isPlayersOnly() { return playersOnly; }
+	public static void togglePlayersOnly() { playersOnly = !playersOnly; }
+
+	public static int getPosition() { return position; }
+	public static void cyclePosition() { position = (position + 1) % POSITION_LABELS.length; }
 
 	private static LivingEntity lastAttacked = null;
 	private static long lastAttackTime = 0;
@@ -61,13 +72,19 @@ public class FightAdvisorClient implements ClientModInitializer {
 
 			LivingEntity target = pickTarget(client, me);
 			if (target == null) return;
+			if (playersOnly && !(target instanceof PlayerEntity)) return;
 
 			float myEff = Advice.effectiveHp(me);
 			float theirEff = Advice.effectiveHp(target);
-			Advice.Verdict verdict = Advice.judge(myEff, theirEff);
+			Advice.Verdict verdict = Advice.judge(myEff, theirEff, mode);
 
 			int cx = ctx.getScaledWindowWidth() / 2;
-			int y = ctx.getScaledWindowHeight() / 2 + 22;
+			int h = ctx.getScaledWindowHeight();
+			int y = switch (position) {
+				case 0 -> h / 2 - 40;
+				case 2 -> h - 75;
+				default -> h / 2 + 22;
+			};
 
 			// Sam napis z werdyktem pod celownikiem
 			ctx.drawCenteredTextWithShadow(client.textRenderer, verdict.label, cx, y, verdict.color);

@@ -26,10 +26,32 @@ public class Advice {
 		return hp / (1f - reduction);
 	}
 
-	public static Verdict judge(float myEff, float theirEff) {
+	/** Tryb ostroznosci: im ostrozniejszy, tym wiekszej przewagi wymaga zanim powie ORAJ. */
+	public enum Mode {
+		CAUTIOUS("Ostrożny", 1.6f, 1.0f),
+		NORMAL("Normalny", 1.3f, 0.8f),
+		BOLD("Odważny", 1.0f, 0.6f);
+
+		public final String label;
+		public final float fightRatio;   // od tej przewagi: ORAJ
+		public final float retreatRatio; // ponizej tej: WYCOFAJ SIE
+
+		Mode(String label, float fightRatio, float retreatRatio) {
+			this.label = label;
+			this.fightRatio = fightRatio;
+			this.retreatRatio = retreatRatio;
+		}
+
+		public Mode next() {
+			Mode[] all = values();
+			return all[(ordinal() + 1) % all.length];
+		}
+	}
+
+	public static Verdict judge(float myEff, float theirEff, Mode mode) {
 		float ratio = myEff / Math.max(theirEff, 0.1f);
-		if (ratio >= 1.3f) return Verdict.FIGHT;
-		if (ratio >= 0.8f) return Verdict.EVEN;
+		if (ratio >= mode.fightRatio) return Verdict.FIGHT;
+		if (ratio >= mode.retreatRatio) return Verdict.EVEN;
 		return Verdict.RETREAT;
 	}
 }

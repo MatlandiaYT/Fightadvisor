@@ -6,7 +6,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-/** Male menu otwierane klawiszem V: przycisk wlacz/wylacz oraz zamkniecie. */
+/** Menu otwierane klawiszem V: wlacz/wylacz, tryb, tylko gracze, pozycja napisu. */
 public class FightAdvisorScreen extends Screen {
 
 	public FightAdvisorScreen() {
@@ -20,27 +20,61 @@ public class FightAdvisorScreen extends Screen {
 						.formatted(on ? Formatting.GREEN : Formatting.RED));
 	}
 
+	private static Text modeLabel() {
+		return Text.literal("Tryb: ")
+				.append(Text.literal(FightAdvisorClient.getMode().label).formatted(Formatting.YELLOW));
+	}
+
+	private static Text playersLabel() {
+		boolean on = FightAdvisorClient.isPlayersOnly();
+		return Text.literal("Tylko gracze: ")
+				.append(Text.literal(on ? "TAK" : "NIE").formatted(on ? Formatting.GREEN : Formatting.GRAY));
+	}
+
+	private static Text positionLabel() {
+		return Text.literal("Pozycja: ")
+				.append(Text.literal(FightAdvisorClient.POSITION_LABELS[FightAdvisorClient.getPosition()])
+						.formatted(Formatting.AQUA));
+	}
+
 	@Override
 	protected void init() {
 		int cx = this.width / 2;
-		int cy = this.height / 2;
+		int top = this.height / 2 - 46;
+		int step = 24;
 
 		addDrawableChild(ButtonWidget.builder(toggleLabel(), button -> {
 			FightAdvisorClient.setEnabled(!FightAdvisorClient.isEnabled());
 			button.setMessage(toggleLabel());
-		}).dimensions(cx - 100, cy - 12, 200, 20).build());
+		}).dimensions(cx - 100, top, 200, 20).build());
+
+		addDrawableChild(ButtonWidget.builder(modeLabel(), button -> {
+			FightAdvisorClient.cycleMode();
+			button.setMessage(modeLabel());
+		}).dimensions(cx - 100, top + step, 200, 20).build());
+
+		addDrawableChild(ButtonWidget.builder(playersLabel(), button -> {
+			FightAdvisorClient.togglePlayersOnly();
+			button.setMessage(playersLabel());
+		}).dimensions(cx - 100, top + step * 2, 200, 20).build());
+
+		addDrawableChild(ButtonWidget.builder(positionLabel(), button -> {
+			FightAdvisorClient.cyclePosition();
+			button.setMessage(positionLabel());
+		}).dimensions(cx - 100, top + step * 3, 200, 20).build());
 
 		addDrawableChild(ButtonWidget.builder(Text.literal("Zamknij"), button -> close())
-				.dimensions(cx - 100, cy + 14, 200, 20).build());
+				.dimensions(cx - 100, top + step * 4 + 6, 200, 20).build());
 	}
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		super.render(context, mouseX, mouseY, delta);
-		context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, this.height / 2 - 36, 0xFFFFFFFF);
+		int top = this.height / 2 - 46;
+		context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, top - 24, 0xFFFFFFFF);
 		context.drawCenteredTextWithShadow(this.textRenderer,
-				Text.literal("ORAJ / RÓWNO / WYCOFAJ SIĘ pod celownikiem").formatted(Formatting.GRAY),
-				this.width / 2, this.height / 2 - 24, 0xFFAAAAAA);
+				Text.literal("ORAJ / RÓWNO / WYCOFAJ SIĘ").formatted(Formatting.GRAY),
+				this.width / 2, top - 12, 0xFFAAAAAA);
 	}
 
 	/** Gra nie zatrzymuje sie przy otwartym menu (przydatne w walce). */
